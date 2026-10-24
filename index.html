@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Box Score Lab: Fantasy Team Builder, 2025-26 NBA</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#F4F5F7;color:#172B4D}
+  header{background:linear-gradient(120deg,#0B1F4A,#172B4D 55%,#FF6B35);color:#fff;padding:26px 18px 20px}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 16px}
+  h1{margin:0;font-size:30px}
+  .sub{opacity:.92;margin:6px 0 0;font-size:15px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);padding:3px 10px;border-radius:999px;font-size:12px;margin-top:10px}
+  main{max-width:1020px;margin:0 auto;padding:18px 16px 36px}
+  h2{font-size:20px;margin:24px 0 10px}
+  .panel{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(23,43,77,.08)}
+  .capbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .stat{text-align:center;min-width:110px}
+  .stat .v{font-size:28px;font-weight:800}
+  .stat .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#8898AA;font-weight:700}
+  .meter{flex:1;min-width:200px;background:#E9ECEF;border-radius:999px;height:16px;overflow:hidden}
+  .meter div{height:100%;background:#1F883D;border-radius:999px;transition:width .2s}
+  .meter div.over{background:#D1242F}
+  .slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+  .slot{border:2px dashed #CED4DA;border-radius:12px;padding:10px;text-align:center;min-height:86px}
+  .slot.filled{border-style:solid;border-color:#172B4D;background:#F8F9FA}
+  .slot .pos{font-size:11px;font-weight:800;letter-spacing:.08em;color:#FF6B35}
+  .slot .who{font-weight:800;margin:4px 0 2px;font-size:15px}
+  .slot .det{font-size:12px;color:#8898AA}
+  .slot button{margin-top:6px;border:none;background:#FFE8E0;color:#B23A12;border-radius:999px;padding:4px 12px;font-weight:700;cursor:pointer}
+  .verdict{margin-top:12px;font-size:15px;font-weight:700;text-align:center;min-height:22px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .actions button{flex:1;min-width:150px;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;background:#172B4D;color:#fff}
+  .actions button.alt{background:#FF6B35}
+  .actions button.ghost{background:#E9ECEF;color:#172B4D}
+  .msg{text-align:center;color:#B23A12;font-weight:700;min-height:20px;margin-top:10px;font-size:14px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .controls input,.controls select{padding:11px 12px;border:1px solid #DEE2E6;border-radius:10px;font-size:14px;background:#fff}
+  .controls input{flex:2;min-width:180px}
+  .controls select{flex:1;min-width:150px}
+  .poolwrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+  th,td{padding:8px;text-align:right;border-bottom:1px solid #E9ECEF;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{color:#525F7F;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  td.fp{font-weight:800}
+  .addbtn{border:none;border-radius:999px;padding:6px 14px;font-weight:800;cursor:pointer;background:#1F883D;color:#fff}
+  .addbtn.inteam{background:#E9ECEF;color:#525F7F}
+  .addbtn:disabled{opacity:.4;cursor:not-allowed}
+  .glossary{font-size:14px;line-height:1.7;color:#525F7F}
+  .glossary b{color:#172B4D}
+  footer{font-size:13px;color:#8898AA;line-height:1.6;margin-top:24px}
+  footer a{color:#0969DA}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Box Score Lab: Fantasy Team Builder</h1>
+    <p class="sub">Build your team from 2025-26 NBA per-game stats. Six roster spots, a $110 salary cap, and one question: stars and scrubs, or balanced?</p>
+    <span class="badge" id="dataBadge">Fantasy v3. Loading player data…</span>
+  </div>
+</header>
+<main>
+  <h2>Your team</h2>
+  <div class="panel">
+    <div class="capbar">
+      <div class="stat"><div class="v" id="spent">$0</div><div class="k">Spent of $110</div></div>
+      <div class="meter"><div id="meterFill" style="width:0%"></div></div>
+      <div class="stat"><div class="v" id="proj">0.0</div><div class="k">Projected fantasy pts / game</div></div>
+      <div class="stat"><div class="v" id="count">0/6</div><div class="k">Players</div></div>
+    </div>
+    <div class="slots" id="slots"></div>
+    <div class="verdict" id="verdict">Add players below to build your starting six.</div>
+    <div class="actions">
+      <button class="alt" id="autoBtn" type="button">Auto-build best team</button>
+      <button id="copyBtn" type="button">Copy my team</button>
+      <button class="ghost" id="resetBtn" type="button">Reset</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <h2>Player pool</h2>
+  <div class="panel">
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search a player, team, or position">
+      <select id="sortSel" aria-label="Sort pool">
+        <option value="fp">Sort: Fantasy pts</option>
+        <option value="value">Sort: Value (pts per $)</option>
+        <option value="salary">Sort: Salary, high to low</option>
+        <option value="pts">Sort: Points per game</option>
+      </select>
+    </div>
+    <div class="poolwrap">
+    <table>
+      <thead><tr><th>Player</th><th>Team</th><th>Eligible</th><th>Salary</th><th>Fantasy pts</th><th>Value</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TOV</th><th></th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    </div>
+    <p style="font-size:13px;color:#8898AA;margin:10px 0 0">Value is the fantasy skill: a $15 player scoring 40 fantasy points beats a $23 player scoring 50, because the $8 saved upgrades another slot.</p>
+  </div>
+
+  <h2>How scoring works</h2>
+  <div class="panel glossary">
+    <b>Fantasy points per game</b> are calculated from the player's real 2025-26 per-game stats with this site scoring system, a simplified version of common fantasy points formats:
+    <b>PTS</b> 1 point each, <b>REB</b> 1.2, <b>AST</b> 1.5, <b>STL</b> 3, <b>BLK</b> 3, <b>TOV</b> minus 1.
+    <b>Salary</b> is set from fantasy points, so the cap forces real choices.
+    <b>Roster:</b> one PG, SG, SF, PF, and C, plus one FLEX who can be any position. Position eligibility is site-defined and includes common secondary positions.
+    Worked example, the league's fantasy cheat code: Nikola Jokić scores 27.7 pts + 12.9 reb x 1.2 + 10.7 ast x 1.5 + 1.4 stl x 3 + 0.8 blk x 3, minus 3.7 turnovers, for <b>62.1 fantasy points a game</b>. He also costs $23 of your $110, which is the whole game.
+  </div>
+
+  <footer>
+    <span id="sourceNote">Data: embedded snapshot of 2025-26 per-game stats from <a href="https://www.basketball-reference.com/leagues/NBA_2026_per_game.html">Basketball-Reference</a>, captured 24 Oct 2026. When this site is served from its GitHub repo, a scheduled GitHub Action refreshes <i>data/players.json</i> from stats.nba.com (via nba_api) and this page loads that instead.</span>
+    Fantasy points, salaries, and position eligibility are this site's own layer on top of the real stats. Personal learning project, not affiliated with Basketball-Reference, the NBA, or any fantasy platform.
+  </footer>
+</main>
+
+<script>
+const RAW = [
+  {name:"Luka Dončić", team:"LAL", pos:["PG","SG"], g:64, pts:33.5, trb:7.7, ast:8.3, stl:1.6, blk:0.5, tov:4.0},
+  {name:"Shai Gilgeous-Alexander", team:"OKC", pos:["PG","SG"], g:68, pts:31.1, trb:4.3, ast:6.6, stl:1.4, blk:0.8, tov:2.2},
+  {name:"Anthony Edwards", team:"MIN", pos:["SG","SF"], g:61, pts:28.8, trb:5.0, ast:3.7, stl:1.4, blk:0.8, tov:2.9},
+  {name:"Jaylen Brown", team:"BOS", pos:["SF","SG"], g:71, pts:28.7, trb:6.9, ast:5.1, stl:1.0, blk:0.4, tov:3.6},
+  {name:"Tyrese Maxey", team:"PHI", pos:["PG","SG"], g:70, pts:28.3, trb:4.1, ast:6.6, stl:1.9, blk:0.8, tov:2.4},
+  {name:"Kawhi Leonard", team:"LAC", pos:["SF","PF"], g:65, pts:27.9, trb:6.4, ast:3.6, stl:1.9, blk:0.4, tov:2.0},
+  {name:"Donovan Mitchell", team:"CLE", pos:["SG","PG"], g:70, pts:27.9, trb:4.5, ast:5.7, stl:1.5, blk:0.3, tov:2.8},
+  {name:"Nikola Jokić", team:"DEN", pos:["C"], g:65, pts:27.7, trb:12.9, ast:10.7, stl:1.4, blk:0.8, tov:3.7},
+  {name:"Giannis Antetokounmpo", team:"MIL", pos:["PF","C"], g:36, pts:27.6, trb:9.8, ast:5.4, stl:0.9, blk:0.7, tov:3.2},
+  {name:"Joel Embiid", team:"PHI", pos:["C"], g:38, pts:26.9, trb:7.7, ast:3.9, stl:0.6, blk:1.2, tov:2.9},
+  {name:"Lauri Markkanen", team:"UTA", pos:["PF","SF"], g:42, pts:26.7, trb:6.9, ast:2.1, stl:1.0, blk:0.5, tov:1.5},
+  {name:"Stephen Curry", team:"GSW", pos:["PG"], g:43, pts:26.6, trb:3.6, ast:4.7, stl:1.1, blk:0.4, tov:2.8},
+  {name:"Devin Booker", team:"PHO", pos:["SG","SF"], g:64, pts:26.1, trb:3.9, ast:6.0, stl:0.8, blk:0.3, tov:3.1},
+  {name:"Jalen Brunson", team:"NYK", pos:["PG"], g:74, pts:26.0, trb:3.3, ast:6.8, stl:0.8, blk:0.1, tov:2.4},
+  {name:"Kevin Durant", team:"HOU", pos:["SF","PF"], g:78, pts:26.0, trb:5.5, ast:4.8, stl:0.8, blk:0.9, tov:3.2},
+  {name:"Jamal Murray", team:"DEN", pos:["PG","SG"], g:75, pts:25.4, trb:4.4, ast:7.1, stl:0.9, blk:0.4, tov:2.3},
+  {name:"Victor Wembanyama", team:"SAS", pos:["C","PF"], g:64, pts:25.0, trb:11.5, ast:3.1, stl:1.0, blk:3.1, tov:2.4},
+  {name:"Deni Avdija", team:"POR", pos:["SF","PF"], g:66, pts:24.2, trb:6.9, ast:6.7, stl:0.8, blk:0.6, tov:3.8},
+  {name:"Pascal Siakam", team:"IND", pos:["PF"], g:62, pts:24.0, trb:6.6, ast:3.8, stl:1.1, blk:0.4, tov:2.2},
+  {name:"Cade Cunningham", team:"DET", pos:["PG","SG"], g:64, pts:23.9, trb:5.5, ast:9.9, stl:1.4, blk:0.8, tov:3.7},
+  {name:"James Harden", team:"2TM", pos:["PG","SG"], g:70, pts:23.6, trb:4.8, ast:8.0, stl:1.1, blk:0.4, tov:3.5},
+  {name:"Austin Reaves", team:"LAL", pos:["SG","SF"], g:51, pts:23.3, trb:4.7, ast:5.5, stl:1.1, blk:0.4, tov:3.0},
+  {name:"Jalen Johnson", team:"ATL", pos:["SF","PF"], g:72, pts:22.5, trb:10.3, ast:7.9, stl:1.2, blk:0.4, tov:3.4},
+  {name:"Paolo Banchero", team:"ORL", pos:["PF","SF"], g:72, pts:22.2, trb:8.4, ast:5.2, stl:0.7, blk:0.6, tov:3.1},
+  {name:"Cooper Flagg", team:"DAL", pos:["SF","PF"], g:70, pts:21.0, trb:6.7, ast:4.5, stl:1.2, blk:0.9, tov:2.3},
+  {name:"LeBron James", team:"LAL", pos:["SF","PF"], g:60, pts:20.9, trb:6.1, ast:7.2, stl:1.2, blk:0.6, tov:3.0}
+];
+const CAP = 110;
+const SLOTS = ["PG","SG","SF","PF","C","FLEX"];
+function computePlayers(list){
+  return list.map(p => {
+    const fp = p.pts + p.trb * 1.2 + p.ast * 1.5 + p.stl * 3 + p.blk * 3 - p.tov;
+    return {...p, fp: Math.round(fp * 10) / 10, salary: Math.round(fp / 3) + 2};
+  });
+}
+// Starts as the embedded snapshot, then loadLive() tries data/players.json,
+// which the GitHub Action refreshes from stats.nba.com. If the fetch fails
+// (offline, file missing, local file:// open), the snapshot stays in place.
+let PLAYERS = computePlayers(RAW);
+
+let team = {}; // slot -> player name
+
+function spent(){ return Object.values(team).reduce((s,n) => s + PLAYERS.find(p => p.name === n).salary, 0); }
+function proj(){ return Object.values(team).reduce((s,n) => s + PLAYERS.find(p => p.name === n).fp, 0); }
+function inTeam(name){ return Object.values(team).includes(name); }
+
+function slotFor(p){
+  for (const s of SLOTS.slice(0,5)) if (p.pos.includes(s) && !team[s]) return s;
+  if (!team.FLEX) return "FLEX";
+  return null;
+}
+
+function say(t){ document.getElementById('msg').textContent = t || ''; }
+
+function add(name){
+  const p = PLAYERS.find(x => x.name === name);
+  if (inTeam(name)) { remove(name); return; }
+  if (spent() + p.salary > CAP) { say('Over the cap: ' + p.name + ' costs $' + p.salary + ' but you only have $' + (CAP - spent()) + ' left.'); return; }
+  const s = slotFor(p);
+  if (!s) { say('No open slot for ' + p.name + ' (' + p.pos.join('/') + '). Remove someone at his position first.'); return; }
+  team[s] = name; say('');
+  render();
+}
+function remove(name){
+  for (const s of SLOTS) if (team[s] === name) delete team[s];
+  render();
+}
+
+function verdictText(){
+  const n = Object.keys(team).length, t = proj();
+  if (n < 6) return 'Add players below to build your starting six. ' + (6 - n) + ' spot' + (6 - n === 1 ? '' : 's') + ' left, $' + (CAP - spent()) + ' to spend.';
+  if (t >= 285) return 'Projected ' + t.toFixed(1) + ': championship pace. This team wins most weeks.';
+  if (t >= 260) return 'Projected ' + t.toFixed(1) + ': playoff lock. Strong across every slot.';
+  if (t >= 235) return 'Projected ' + t.toFixed(1) + ': playoff bubble. One value upgrade changes this.';
+  return 'Projected ' + t.toFixed(1) + ': lottery bound. Too much salary sitting in low production.';
+}
+
+function render(){
+  document.getElementById('spent').textContent = '$' + spent();
+  document.getElementById('proj').textContent = proj().toFixed(1);
+  document.getElementById('count').textContent = Object.keys(team).length + '/6';
+  const fill = document.getElementById('meterFill');
+  fill.style.width = Math.min(100, spent() / CAP * 100) + '%';
+  fill.classList.toggle('over', spent() > CAP);
+  document.getElementById('slots').innerHTML = SLOTS.map(s => {
+    const n = team[s];
+    if (!n) return '<div class="slot"><div class="pos">' + s + '</div><div class="who" style="color:#ADB5BD">Empty</div><div class="det">Tap + Add on a player below</div></div>';
+    const p = PLAYERS.find(x => x.name === n);
+    return '<div class="slot filled"><div class="pos">' + s + '</div><div class="who">' + p.name + '</div><div class="det">' + p.team + ' · $' + p.salary + ' · ' + p.fp.toFixed(1) + ' fantasy pts</div><button type="button" onclick="remove(\'' + p.name.replace(/'/g, "\\'") + '\')">Remove</button></div>';
+  }).join('');
+  document.getElementById('verdict').textContent = verdictText();
+  renderPool();
+}
+
+function renderPool(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const sort = document.getElementById('sortSel').value;
+  const key = sort === 'value' ? null : sort;
+  const rows = PLAYERS
+    .filter(p => !q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q) || p.pos.join('/').toLowerCase().includes(q))
+    .sort((a,b) => key ? b[key] - a[key] : (b.fp / b.salary) - (a.fp / a.salary));
+  document.getElementById('tbody').innerHTML = rows.map(p => {
+    const mine = inTeam(p.name);
+    const afford = spent() + p.salary <= CAP;
+    const dis = !mine && (!afford || Object.keys(team).length >= 6 && !slotFor(p));
+    return '<tr><td><b>' + p.name + '</b></td><td>' + p.team + '</td><td>' + p.pos.join('/') + '</td><td>$' + p.salary +
+      '</td><td class="fp">' + p.fp.toFixed(1) + '</td><td>' + (p.fp / p.salary).toFixed(2) + '</td><td>' + p.pts.toFixed(1) +
+      '</td><td>' + p.trb.toFixed(1) + '</td><td>' + p.ast.toFixed(1) + '</td><td>' + p.stl.toFixed(1) + '</td><td>' + p.blk.toFixed(1) +
+      '</td><td>' + p.tov.toFixed(1) + '</td><td><button type="button" class="addbtn' + (mine ? ' inteam' : '') + '" ' + (dis ? 'disabled' : '') +
+      ' onclick="add(\'' + p.name.replace(/'/g, "\\'") + '\')">' + (mine ? 'In team' : '+ Add') + '</button></td></tr>';
+  }).join('');
+}
+
+function assignmentFor(list){
+  // Bipartite match: can these 6 players fill PG, SG, SF, PF, C, FLEX exactly once each?
+  const match = {}; // slot -> player index in list
+  function tryPlayer(i, seen){
+    for (const s of SLOTS) {
+      if (seen.has(s)) continue;
+      if (s !== 'FLEX' && !list[i].pos.includes(s)) continue;
+      seen.add(s);
+      if (!(s in match) || tryPlayer(match[s], seen)) { match[s] = i; return true; }
+    }
+    return false;
+  }
+  for (let i = 0; i < list.length; i++) if (!tryPlayer(i, new Set())) return null;
+  const out = {};
+  for (const s of SLOTS) out[s] = list[match[s]].name;
+  return out;
+}
+
+function autoBuild(){
+  // Exhaustive search over every 6-player combination: the true best team under the cap.
+  let best = null, bestTotal = -1;
+  const chosen = [];
+  function search(start, cost){
+    if (chosen.length === 6) {
+      const assign = assignmentFor(chosen);
+      if (!assign) return;
+      const total = chosen.reduce((s,p) => s + p.fp, 0);
+      if (total > bestTotal) { bestTotal = total; best = assign; }
+      return;
+    }
+    for (let i = start; i < PLAYERS.length; i++) {
+      const p = PLAYERS[i];
+      if (cost + p.salary > CAP) continue;
+      chosen.push(p); search(i + 1, cost + p.salary); chosen.pop();
+    }
+  }
+  search(0, 0);
+  if (best) { team = best; say(''); } else say('No valid team found under the cap.');
+  render();
+}
+
+document.getElementById('search').oninput = renderPool;
+document.getElementById('sortSel').onchange = renderPool;
+document.getElementById('autoBtn').onclick = autoBuild;
+document.getElementById('resetBtn').onclick = () => { team = {}; say(''); render(); };
+document.getElementById('copyBtn').onclick = async () => {
+  const lines = SLOTS.filter(s => team[s]).map(s => {
+    const p = PLAYERS.find(x => x.name === team[s]);
+    return s + ': ' + p.name + ' (' + p.team + ') $' + p.salary + ', ' + p.fp.toFixed(1) + ' fantasy pts';
+  });
+  const text = 'My Box Score Lab team\n' + lines.join('\n') + '\nTotal: $' + spent() + ' of $' + CAP + ', projected ' + proj().toFixed(1) + ' fantasy pts/game';
+  try { await navigator.clipboard.writeText(text); say('Team copied. Paste it anywhere to challenge a friend.'); }
+  catch(e) { say(text); }
+};
+
+async function loadLive(){
+  const badge = document.getElementById('dataBadge');
+  try {
+    const res = await fetch('data/players.json', {cache: 'no-store'});
+    if (!res.ok) throw new Error('players.json ' + res.status);
+    const data = await res.json();
+    if (!data.players || data.players.length < 10) throw new Error('players.json too small');
+    PLAYERS = computePlayers(data.players);
+    team = {};
+    badge.textContent = 'Fantasy v3 · Live data file: ' + data.season + ' season · Updated ' + data.generated_at;
+    document.getElementById('sourceNote').textContent = 'Data: ' + data.source + ' Season ' + data.season + ', updated ' + data.generated_at + ', loaded from data/players.json in this repo.';
+    say('');
+  } catch (e) {
+    badge.textContent = 'Fantasy v3 · Snapshot mode: 2025-26 season (completed)';
+  }
+  render();
+}
+
+render();
+loadLive();
+</script>
+</body>
+</html>
